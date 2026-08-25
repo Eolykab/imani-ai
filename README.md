@@ -28,9 +28,14 @@ The LLM cannot execute shell text. Its structured selection is parsed with Pydan
 - Ollama reachability/model readiness and response-time monitoring
 - Cross-platform Hailo-8 detection through `hailortcli fw-control identify`
 - Shared SQLite notes, tasks, uploads, and high-level audit activity
+- Full task CRUD with Telegram inline Complete/Delete controls and per-user Telegram ownership
+- Scheduled and recurring reminders with Telegram delivery plus daily device/task briefings
+- Persistent dashboard chat history stored locally in SQLite
+- Optional real current weather through Open-Meteo when coordinates are configured
 - Telegram `/start`, `/help`, `/status`, `/health`, `/notes`, `/tasks`, plus natural language
+- Telegram voice notes transcribed locally by the optional Hailo-8 Whisper pipeline
 - Telegram numeric user allowlist; rejected content is not logged
-- Upload-limited `.txt`, `.md`, `.json`, and `.log` assistant
+- Upload-limited `.txt`, `.md`, `.json`, `.log`, and text-based `.pdf` assistant with controlled deletion
 - Responsive dashboard and `/demo` presentation route (all metrics remain real)
 - macOS-safe fallbacks when Linux/Raspberry Pi capabilities are absent
 
@@ -117,9 +122,75 @@ curl http://localhost:8000/api/hailo/status
 
 Expected fields include `detected`, `device`, `firmware`, `architecture`, and `status`. Install the matching HailoRT package if `hailortcli` is missing. Detection only reports the edge accelerator—it does not associate it with Qwen/Ollama inference.
 
+### Hailo-8 Telegram voice notes
+
+PiPilot uses Hailo's standalone Whisper application for Hailo-8/8L. Hailo performs speech-to-text; Ollama/Qwen separately interprets the transcript and the approved tool registry performs actions.
+
+Install the official Hailo Apps speech-recognition environment on the Pi (after installing the HailoRT driver and Python binding):
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg libportaudio2 python3-venv git
+cd /opt
+sudo git clone https://github.com/hailo-ai/hailo-apps.git
+sudo chown -R pipilot:pipilot /opt/hailo-apps
+sudo -u pipilot python3 -m venv --system-site-packages /opt/hailo-apps/venv
+sudo -u pipilot /opt/hailo-apps/venv/bin/pip install -e '/opt/hailo-apps[speech-rec]'
+```
+
+Confirm `.env` contains:
+
+```dotenv
+PIPILOT_VOICE_MAX_SECONDS=60
+HAILO_STT_PYTHON=/opt/hailo-apps/venv/bin/python
+HAILO_STT_VARIANT=base
+```
+
+Verify the installed application before restarting PiPilot:
+
+```bash
+sudo -u pipilot /opt/hailo-apps/venv/bin/python -m hailo_apps.python.standalone_apps.speech_recognition.speech_recognition --list-models --arch hailo8
+sudo systemctl restart pipilot
+```
+
+The first transcription may download Hailo model resources and take longer. Send a Telegram voice note such as “Add rehearse presentation to my tasks.” PiPilot downloads it to a temporary controlled directory, converts it to mono 16 kHz audio, transcribes it on Hailo-8, deletes the temporary audio, passes the transcript to the normal agent, and displays the action on Live Demo.
+
 ## API
 
 Core routes: `GET /api/health`, `/api/status`, `/api/system`, `/api/system/processes`, `/api/ollama/status`, `/api/hailo/status`, `/api/memories`, `/api/tasks`, `/api/files`, `/api/activity`; `POST /api/chat`, `/api/memories`, `/api/tasks`, `/api/files`, `/api/files/{id}/ask`; `PATCH /api/tasks/{id}`; and delete routes for memories/tasks. Interactive docs are at `/docs` during backend-only development.
+
+Additional productivity routes include `GET/DELETE /api/chat/history`, `GET/POST /api/reminders`, `DELETE /api/reminders/{id}`, `GET /api/voice/history`, and `DELETE /api/files/{id}`.
+
+## Reminders, briefings, and weather
+
+Configure the local timezone and daily briefing hour (0-23) in `.env`:
+
+```dotenv
+PIPILOT_TIMEZONE=Africa/Johannesburg
+PIPILOT_DAILY_BRIEFING_HOUR=7
+```
+
+Examples:
+
+```text
+Remind me tomorrow at 9 to rehearse my presentation.
+Remind me in 30 minutes to check the dashboard.
+Remind me every day at 8 to review my tasks.
+Show my reminders.
+Cancel reminder 3.
+```
+
+The scheduler runs inside the PiPilot service and persists reminder state in SQLite. Web-created reminders are assigned to the first configured `TELEGRAM_ALLOWED_USER_IDS` entry. A daily briefing is delivered once per local calendar day and includes pending tasks plus real Pi/Ollama status.
+
+Weather is disabled until explicit coordinates are configured:
+
+```dotenv
+PIPILOT_WEATHER_LOCATION=Johannesburg
+PIPILOT_WEATHER_LATITUDE=-26.2041
+PIPILOT_WEATHER_LONGITUDE=28.0473
+```
+
+Then ask “What is the current weather?” Weather is the only feature in this group that requires an external internet request; the response identifies Open-Meteo as its source. Private memories and task content are not sent to the weather service.
 
 ## Demo walkthrough
 

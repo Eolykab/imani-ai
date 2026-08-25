@@ -38,3 +38,19 @@ async def test_memory_shared_in_database(db):
 async def test_service_allowlist_rejects_arbitrary_service(db):
     result = await execute_tool("service_status", {"service": "unapproved"}, db)
     assert result["allowed"] is False
+
+
+@pytest.mark.asyncio
+async def test_task_full_crud(db):
+    created = await execute_tool("create_task", {"text": "prepare demo"}, db)
+    updated = await execute_tool("update_task", {
+        "query": str(created["id"]), "title": "prepare PiPilot demo",
+        "description": "Practice the voice workflow", "due_date": "2026-08-26T09:00:00+02:00",
+    }, db)
+    assert updated["updated"] is True
+    assert updated["title"] == "prepare PiPilot demo"
+    completed = await execute_tool("complete_task", {"query": "PiPilot demo"}, db)
+    assert completed["updated"] is True
+    deleted = await execute_tool("delete_task", {"query": str(created["id"])}, db)
+    assert deleted["deleted"] is True
+    assert await execute_tool("list_tasks", {}, db) == []

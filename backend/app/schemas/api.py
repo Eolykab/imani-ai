@@ -52,3 +52,8 @@ class TaskOut(TaskCreate):
 class FileQuestion(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
+
+class ReminderCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    remind_at: str = Field(min_length=1, max_length=100)
+    recurrence: str | None = Field(default=None, pattern="^(daily|weekly)$")

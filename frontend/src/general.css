@@ -1,0 +1,1 @@
+.general-banner{display:flex;align-items:center;gap:11px;background:#edf4ef;border:1px solid #d4e1d8;padding:12px 15px;margin-bottom:10px;border-radius:7px;color:#2c4f40}.general-banner div{display:flex;flex-direction:column;gap:3px}.general-banner small{color:#65786f}.assistant-general .chat{height:calc(100vh - 205px)}

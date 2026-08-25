@@ -15,7 +15,7 @@ RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/opt/pipilot/data
+ReadWritePaths=/opt/pipilot/data /opt/hailo-apps
 
 [Install]
 WantedBy=multi-user.target

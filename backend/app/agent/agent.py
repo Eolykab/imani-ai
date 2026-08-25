@@ -66,16 +66,43 @@ Use semantic intent, not simple keyword matching. Available tools: {catalog}\nUs
             return Decision(action="tool", tool=ToolCall(name="create_memory", arguments={"text": remember.group(1)}))
         task = re.match(r"(?:please\s+)?(?:add|create)\s+(.+?)(?:\s+to my tasks?|\s+as a task)$", lower, re.I)
         if task:
-            return Decision(action="tool", tool=ToolCall(name="create_task", arguments={"text": task.group(1)}))
+            task_text = task.group(1)
+            due = re.match(r"(.+?)\s+due\s+((?:today|tomorrow)(?:\s+at\s+.+)?|in\s+\d+\s+(?:hours?|days?))$", task_text, re.I)
+            arguments = {"text": due.group(1), "due_date": due.group(2)} if due else {"text": task_text}
+            return Decision(action="tool", tool=ToolCall(name="create_task", arguments=arguments))
         complete = re.match(r"(?:mark|complete)\s+(.+?)(?:\s+as done|\s+done)?$", lower, re.I)
         if complete:
             return Decision(action="tool", tool=ToolCall(name="complete_task", arguments={"query": complete.group(1)}))
+        delete = re.match(r"(?:delete|remove)\s+(?:task\s+)?(?!reminder\b)(.+)$", lower, re.I)
+        if delete:
+            return Decision(action="tool", tool=ToolCall(name="delete_task", arguments={"query": delete.group(1)}))
+        rename = re.match(r"(?:rename|change)\s+(?:task\s+)?(.+?)\s+to\s+(.+)$", lower, re.I)
+        if rename:
+            return Decision(action="tool", tool=ToolCall(name="update_task", arguments={"query": rename.group(1), "title": rename.group(2)}))
+        recurring = re.match(r"remind me every\s+(day|week)(?:\s+at\s+(.+?))?\s+to\s+(.+)$", lower, re.I)
+        if recurring:
+            time_text = recurring.group(2) or "9"
+            return Decision(action="tool", tool=ToolCall(name="create_reminder", arguments={
+                "when": f"tomorrow at {time_text}", "text": recurring.group(3),
+                "recurrence": "daily" if recurring.group(1) == "day" else "weekly",
+            }))
+        reminder = re.match(r"remind me\s+(.+?)\s+to\s+(.+)$", lower, re.I)
+        if reminder:
+            return Decision(action="tool", tool=ToolCall(name="create_reminder", arguments={"when": reminder.group(1), "text": reminder.group(2)}))
+        cancel_reminder = re.match(r"(?:cancel|delete)\s+reminder\s+#?(\d+)$", lower, re.I)
+        if cancel_reminder:
+            return Decision(action="tool", tool=ToolCall(name="delete_reminder", arguments={"id": int(cancel_reminder.group(1))}))
+        if re.search(r"\b(show|list|what).*(reminders)\b", lower):
+            return Decision(action="tool", tool=ToolCall(name="list_reminders", arguments={}))
+        if re.search(r"\b(current weather|weather now|temperature outside)\b", lower):
+            return Decision(action="tool", tool=ToolCall(name="current_weather", arguments={}))
         for pattern, tool in patterns:
             if re.search(pattern, lower):
                 return Decision(action="tool", tool=ToolCall(name=tool, arguments={}))
         return Decision(action="direct")
 
-    async def run(self, message: str, history: list[dict[str, str]], db: Session, source: str = "web") -> AgentResult:
+    async def run(self, message: str, history: list[dict[str, str]], db: Session, source: str = "web", owner_id: str = "web") -> AgentResult:
+        db.info["owner_id"] = owner_id
         record_activity(db, source, "ai_request", "Request received")
         # Route clear operational requests deterministically so the model cannot
         # claim a task or memory was saved without executing the validated tool.

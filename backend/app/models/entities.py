@@ -14,6 +14,7 @@ class Memory(Base):
     __tablename__ = "memories"
     id: Mapped[int] = mapped_column(primary_key=True)
     content: Mapped[str] = mapped_column(Text)
+    owner_id: Mapped[str] = mapped_column(String(80), default="shared", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
@@ -26,6 +27,7 @@ class Task(Base):
     due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    owner_id: Mapped[str] = mapped_column(String(80), default="shared", index=True)
 
 
 class UploadedFile(Base):
@@ -36,6 +38,7 @@ class UploadedFile(Base):
     content_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
     size: Mapped[int]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    owner_id: Mapped[str] = mapped_column(String(80), default="shared", index=True)
 
 
 class Activity(Base):
@@ -46,3 +49,36 @@ class Activity(Base):
     detail: Mapped[str] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+
+class Reminder(Base):
+    __tablename__ = "reminders"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(80), index=True)
+    title: Mapped[str] = mapped_column(String(500))
+    remind_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    recurrence: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ChatRecord(Base):
+    __tablename__ = "chat_records"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(80), default="web", index=True)
+    source: Mapped[str] = mapped_column(String(40), default="web")
+    role: Mapped[str] = mapped_column(String(20))
+    content: Mapped[str] = mapped_column(Text)
+    tools_used: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class VoiceTranscript(Base):
+    __tablename__ = "voice_transcripts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(80), index=True)
+    transcript: Mapped[str] = mapped_column(Text)
+    duration_seconds: Mapped[int]
+    engine: Mapped[str] = mapped_column(String(100))
+    tools_used: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

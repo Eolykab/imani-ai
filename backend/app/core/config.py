@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     pipilot_allowed_services: Annotated[list[str], NoDecode] = ["pipilot", "ollama"]
     pipilot_upload_dir: Path = Path("./data/uploads")
     pipilot_max_upload_mb: int = 10
+    pipilot_voice_max_seconds: int = 60
+    hailo_stt_python: Path = Path("/opt/hailo-apps/venv/bin/python")
+    hailo_stt_variant: str = "base"
+    pipilot_timezone: str = "Africa/Johannesburg"
+    pipilot_daily_briefing_hour: int = 7
+    pipilot_weather_location: str = ""
+    pipilot_weather_latitude: float | None = None
+    pipilot_weather_longitude: float | None = None
     frontend_dir: Path = Path("./frontend/dist")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
@@ -36,6 +44,11 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
+
+    @field_validator("pipilot_weather_latitude", "pipilot_weather_longitude", mode="before")
+    @classmethod
+    def empty_coordinate(cls, value: object) -> object:
+        return None if value == "" else value
 
 
 @lru_cache

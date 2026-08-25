@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { Activity, Brain, CheckSquare, FileText, LayoutDashboard, Menu, MessageSquare, Radio, Server, Settings, ShieldCheck, X } from 'lucide-react'
-import { Dashboard, Assistant, SystemPage, MemoryPage, FilesPage, ActivityPage, SettingsPage } from './pages/Pages'
+import { Activity, Bell, Brain, CheckSquare, FileText, LayoutDashboard, Menu, MessageSquare, Mic, Radio, Server, Settings, ShieldCheck, X } from 'lucide-react'
+import { Dashboard, SystemPage, MemoryPage, ActivityPage, SettingsPage } from './pages/Pages'
 import LiveDemo from './pages/LiveDemo'
 import TasksLive from './pages/TasksLive'
+import { FilesLive, GeneralChat, RemindersPage, VoiceHistoryPage } from './pages/Productivity'
 
 const items = [
   ['Dashboard', LayoutDashboard], ['Live Demo', Radio], ['Assistant', MessageSquare],
-  ['System', Server], ['Memory', Brain], ['Tasks', CheckSquare], ['Files', FileText],
+  ['System', Server], ['Memory', Brain], ['Tasks', CheckSquare], ['Reminders', Bell], ['Files', FileText], ['Voice', Mic],
   ['Activity', Activity], ['Settings', Settings],
 ] as const
 
@@ -24,11 +25,13 @@ export default function App() {
   const pages: Record<string, ReactElement> = {
     Dashboard: <Dashboard onNavigate={setPage}/>,
     'Live Demo': <LiveDemo/>,
-    Assistant: <Assistant/>,
+    Assistant: <GeneralChat/>,
     System: <SystemPage/>,
     Memory: <MemoryPage/>,
     Tasks: <TasksLive/>,
-    Files: <FilesPage/>,
+    Reminders: <RemindersPage/>,
+    Files: <FilesLive/>,
+    Voice: <VoiceHistoryPage/>,
     Activity: <ActivityPage key={`activity-${dataVersion}`}/>,
     Settings: <SettingsPage/>,
   }
