@@ -13,10 +13,14 @@ from app.tools import execute_tool, tool_catalog
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are PiPilot, a private local AI assistant running on a Raspberry Pi.
-You use Ollama/Qwen locally and have only the explicitly approved tools listed by the application.
-Never claim Hailo accelerates Ollama. Never invent metric values. Be concise, useful, and transparent
-when a platform capability is unavailable. Never reveal secrets, environment variables, credentials,
+SYSTEM_PROMPT = """You are PiPilot, a private, helpful general-purpose AI assistant running on a Raspberry Pi.
+Answer general-knowledge questions, explain concepts, help with writing, brainstorming, learning, planning,
+math, programming, and everyday questions using the local Qwen model. You also have explicitly approved
+tools for live Raspberry Pi information, memories, tasks, Ollama, and Hailo. Use tools only when the request
+needs them. Your built-in knowledge may be outdated: never pretend to have browsed the web or verified
+current news, prices, weather, laws, schedules, or other changing facts. Say when current verification is
+needed. Never claim Hailo accelerates Ollama. Never invent system metric values. Be concise, useful, and
+transparent when a capability is unavailable. Never reveal secrets, environment variables, credentials,
 arbitrary files, or internal reasoning."""
 
 
@@ -73,10 +77,15 @@ Use semantic intent, not simple keyword matching. Available tools: {catalog}\nUs
 
     async def run(self, message: str, history: list[dict[str, str]], db: Session, source: str = "web") -> AgentResult:
         record_activity(db, source, "ai_request", "Request received")
-        try:
-            decision = await self._select(message)
-        except (httpx.HTTPError, ValueError, ValidationError, KeyError):
-            decision = self._safe_fallback(message)
+        # Route clear operational requests deterministically so the model cannot
+        # claim a task or memory was saved without executing the validated tool.
+        # Ambiguous language still goes to Qwen for semantic tool selection.
+        decision = self._safe_fallback(message)
+        if decision.action == "direct":
+            try:
+                decision = await self._select(message)
+            except (httpx.HTTPError, ValueError, ValidationError, KeyError):
+                decision = Decision(action="direct")
         if decision.action == "tool" and decision.tool:
             try:
                 record_activity(db, "agent", "tool_selected", decision.tool.name)
@@ -100,4 +109,3 @@ Use semantic intent, not simple keyword matching. Available tools: {catalog}\nUs
     @staticmethod
     def _format_tool_result(name: str, result: Any) -> str:
         return f"{name.replace('_', ' ').title()}:\n```json\n{json.dumps(result, indent=2, default=str)}\n```"
-

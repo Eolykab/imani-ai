@@ -31,10 +31,10 @@ class TelegramService:
         return False
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if await self._guard(update): await update.effective_message.reply_text("PiPilot is ready. Ask me about this device, notes, tasks, Ollama, or Hailo.")
+        if await self._guard(update): await update.effective_message.reply_text("PiPilot is ready. Ask me general questions, or ask about this device, notes, tasks, Ollama, and Hailo.")
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if await self._guard(update): await update.effective_message.reply_text("Commands: /status /health /notes /tasks. Natural language works too.")
+        if await self._guard(update): await update.effective_message.reply_text("Ask general-knowledge questions in natural language. Commands: /status /health /notes /tasks.")
 
     async def message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not await self._guard(update) or not update.effective_message or not update.effective_message.text: return
