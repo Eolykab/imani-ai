@@ -143,7 +143,7 @@ Confirm `.env` contains:
 ```dotenv
 PIPILOT_VOICE_MAX_SECONDS=60
 HAILO_STT_PYTHON=/opt/hailo-apps/venv/bin/python
-HAILO_STT_VARIANT=base
+HAILO_STT_VARIANT=tiny
 ```
 
 Verify the installed application before restarting PiPilot:

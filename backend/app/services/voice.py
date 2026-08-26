@@ -15,6 +15,11 @@ class VoiceUnavailable(RuntimeError):
 
 def extract_transcript(output: str) -> str:
     """Extract the transcript without treating diagnostic logs as user speech."""
+    separated = re.findall(r"(?ms)^-{10,}\s*\n(.+?)\n-{10,}\s*(?:\n|$)", output)
+    if separated:
+        transcript = separated[-1].strip()
+        if transcript:
+            return transcript
     patterns = (
         r"(?im)^transcription\s*:\s*(.+)$",
         r"(?im)^transcript\s*:\s*(.+)$",
@@ -41,8 +46,11 @@ async def _run(command: list[str], timeout: int) -> tuple[str, str]:
         process.kill(); await process.communicate()
         raise VoiceUnavailable("Voice processing timed out") from None
     if process.returncode != 0:
-        detail = stderr.decode(errors="replace").strip()[-500:]
-        raise VoiceUnavailable(f"Voice processing failed: {detail or 'unknown Hailo error'}")
+        lines = [line.strip() for line in stderr.decode(errors="replace").splitlines() if line.strip()]
+        detail = lines[-1][:300] if lines else "unknown Hailo error"
+        if "Failed to resolve model" in detail:
+            raise VoiceUnavailable("Hailo Whisper model resources are missing; download the whisper_h8 resources")
+        raise VoiceUnavailable(f"Voice processing failed: {detail}")
     return stdout.decode(errors="replace"), stderr.decode(errors="replace")
 
 

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     pipilot_max_upload_mb: int = 10
     pipilot_voice_max_seconds: int = 60
     hailo_stt_python: Path = Path("/opt/hailo-apps/venv/bin/python")
-    hailo_stt_variant: str = "base"
+    hailo_stt_variant: str = "tiny"
     pipilot_timezone: str = "Africa/Johannesburg"
     pipilot_daily_briefing_hour: int = 7
     pipilot_weather_location: str = ""
